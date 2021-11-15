@@ -1,7 +1,9 @@
 import numpy as np
 import re
 from pymatgen import Composition, Element
-from env import element_set, number_set
+
+element_set = ['Te', 'Sc', 'C', 'Hg', 'Ru', 'Na', 'Co', 'Mo', 'I', 'Tm', 'F', 'Al', 'Pd', 'Fe', 'Th', 'Cs', 'Gd', 'W', 'Ta', 'Dy', 'Pb', 'Rb', 'Ba', 'Ce', 'Ga', 'Tl', 'Mn', 'B', 'Ni', 'Tb', 'Hf', 'Ge', 'V', 'Ho', 'In', 'Cd', 'Yb', 'Pt', 'Nd', 'Mg', 'Zr', 'Re', 'P', 'Sb', 'O', 'N', 'Zn', 'Au', 'Lu', 'Be', 'Cr', 'Ag', 'Pu', 'Si', 'Cu', 'Os', 'Li', 'Am', 'Pr', 'S', 'As', 'Ti', 'Nb', 'Eu', 'H', 'Br', 'La', 'Er', 'Sm', 'Cl', 'Sn', 'K', 'Sr', 'Rh', 'Se', 'U', 'Y', 'Bi', 'Ca', 'Ir']
+comp_set  = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 def _get_target_char_sequence(compound_string):
     comp = Composition(compound_string).formula.replace(" ", "")
@@ -38,7 +40,6 @@ def onehot_target(target):
     return char_seq_vec
 
 # Find element to one-hot dictionary
-element_set = ['Te', 'Sc', 'C', 'Hg', 'Ru', 'Na', 'Co', 'Mo', 'I', 'Tm', 'F', 'Al', 'Pd', 'Fe', 'Th', 'Cs', 'Gd', 'W', 'Ta', 'Dy', 'Pb', 'Rb', 'Ba', 'Ce', 'Ga', 'Tl', 'Mn', 'B', 'Ni', 'Tb', 'Hf', 'Ge', 'V', 'Ho', 'In', 'Cd', 'Yb', 'Pt', 'Nd', 'Mg', 'Zr', 'Re', 'P', 'Sb', 'O', 'N', 'Zn', 'Au', 'Lu', 'Be', 'Cr', 'Ag', 'Pu', 'Si', 'Cu', 'Os', 'Li', 'Am', 'Pr', 'S', 'As', 'Ti', 'Nb', 'Eu', 'H', 'Br', 'La', 'Er', 'Sm', 'Cl', 'Sn', 'K', 'Sr', 'Rh', 'Se', 'U', 'Y', 'Bi', 'Ca', 'Ir']
 element_to_one_hot_dict = {}
 for element_idx in range(len(element_set)):
     element = element_set[element_idx]
@@ -46,7 +47,7 @@ for element_idx in range(len(element_set)):
     enc[element_idx] = 1
     element_to_one_hot_dict[element] = enc
 
-# Find one-hot dictionary to element
+# Find one-hot dictionary to element (inverse mapping)
 one_hot_to_element_dict = {}
 for element in element_to_one_hot_dict.keys():
     one_hot_to_element_dict[tuple(element_to_one_hot_dict[element])] = element # find the inverse mapping
@@ -59,7 +60,7 @@ def element_to_one_hot(elements):
     elements: List. list of elements
 
     Returns:
-    element_to_one_hot: np.array() of shape (no. of elements in input of this function, no. of elements in element_set)
+    element_to_one_hot: List of np.array each with shape (1, no. of elements in element_set)
     '''
 
     """
@@ -74,7 +75,7 @@ def one_hot_to_element(one_hot_encs):
     converts a single element, or a list of multiple elements in one-hot form into their string form
 
     Args:
-    elements: List. list of elements in one-hot form 
+    one_hot_encs: List. list of elements in one-hot form (tuple since dictionary accepts immutable keys)
     i.e. [ tuple(1,0,...,0,0),
            ...
            tuple(0,1,...,0,0)]
@@ -88,15 +89,64 @@ def one_hot_to_element(one_hot_encs):
         one_hot_to_element.append(element)
     return one_hot_to_element
 
+# Find composition to one-hot dictionary
+comp_to_one_hot_dict = {}
+for comp_idx in range(len(comp_set)):
+    comp = comp_set[comp_idx]
+    enc = np.zeros(len(comp_set))
+    enc[comp_idx] = 1
+    comp_to_one_hot_dict[comp] = enc
 
+# Find one-hot dictionary to composition (inverse mapping)
+one_hot_to_comp_dict = {}
+for comp in comp_to_one_hot_dict.keys():
+    one_hot_to_comp_dict[tuple(comp_to_one_hot_dict[comp])] = comp # find the inverse mapping
+
+def element_to_one_hot(comps):
+    """
+    converts a single composition, or a list of multiple composition into their one-hot form
+
+    Args:
+    comps: List. list of compositions
+
+    Returns:
+    comp_to_one_hot: List of np.array each with shape (1, no. of compositions in comp_set)
+    '''
+
+    """
+    comp_to_one_hot = []
+    for comp in comps:
+        enc = comp_to_one_hot_dict[comp]
+        comp_to_one_hot.append(enc)
+    return comp_to_one_hot
+
+def one_hot_to_comp(one_hot_encs):
+    """
+    converts a single composition, or a list of multiple compositions in one-hot form into their string form
+
+    Args:
+    one_hot_encs: List. list of comps in one-hot form (tuple since dictionary accepts immutable keys)
+    i.e. [ tuple(1,0,...,0,0),
+           ...
+           tuple(0,1,...,0,0)]
+
+    Returns:
+    one_hot_to_comp: List of compositions in string form
+    """
+    one_hot_to_comp = []
+    for enc in one_hot_encs:
+        comp = one_hot_to_comp_dict[enc]
+        one_hot_to_comp.append(comp)
+    return one_hot_to_comp
+
+# Testing functions
 # print(element_to_one_hot(['Te', 'C', 'Ru']))
-print(one_hot_to_element(
-[(0., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]
-
-))
+# print(one_hot_to_element([(0., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]))
+# print(element_to_one_hot(['2', '9']))
+print(one_hot_to_comp([(0., 0., 1., 0., 0., 0., 0., 0., 0., 0.), (0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]))
 # print(onehot_target('BaTiO3').reshape(1, 40, 115).shape)
 

@@ -1,4 +1,5 @@
 import numpy as np
+from one_hot import element_set, comp_set, one_hot_to_element, element_to_one_hot
 
 class MaterialEnvironment():
     """
@@ -6,7 +7,7 @@ class MaterialEnvironment():
     """
     def __init__(self, 
                 element_set,
-                number_set,
+                comp_set,
                 init_mat = None,
                 max_steps = 5,
                 ):
@@ -19,7 +20,7 @@ class MaterialEnvironment():
         max_steps: Int. Max number of steps per episode
         '''
         self.element_set = element_set
-        self.number_set  = number_set
+        self.comp_set  = comp_set
         self.init_mat    = init_mat
         self.max_steps   = max_steps
         self.terminated  = False
@@ -56,7 +57,7 @@ class MaterialEnvironment():
         Takes a step forward according to the action.
 
         Args:
-          action: List of np.array. 1st element is np.array of shape (1, num_elements), 2nd element is np.array of shape (1,10) 
+          action: List of np.array. 1st element is tuple of shape (1, num_elements), 2nd element is np.array of shape (1,10) 
 
         Returns:
           results: Namedtuple containing the following fields:
@@ -68,28 +69,49 @@ class MaterialEnvironment():
           ValueError: If the number of steps taken exceeds the preset max_steps, or
             the action is not in the set of valid_actions.
         """
-        if self.counter >= self.max_steps:
-            self.terminated = True
+        # if self.counter >= self.max_steps:
+        #     self.terminated = True
 
         # Record state and action
-        state_action = (self.state, action)
+        state_action = (self.state, self.counter, action)
         self.path.append(state_action)
 
-        # Take action # TO-DO
+        # Take action
+        element = [one_hot_to_element([act]) for act in action][0][0] # String form of element
+        if self.counter == 0: # If empty compound, initialize state
+            self.state = element
+        else: # Else not initial state, so add element to exisiting state
+            self.state += element
+        # print(element)
         # self.state = 
 
         self.counter += 1
         result = (self.state, self.reward()) # result is a tuple of new state and reward from taking the action
     
-
-element_set = ['Te', 'Sc', 'C', 'Hg', 'Ru', 'Na', 'Co', 'Mo', 'I', 'Tm', 'F', 'Al', 'Pd', 'Fe', 'Th', 'Cs', 'Gd', 'W', 'Ta', 'Dy', 'Pb', 'Rb', 'Ba', 'Ce', 'Ga', 'Tl', 'Mn', 'B', 'Ni', 'Tb', 'Hf', 'Ge', 'V', 'Ho', 'In', 'Cd', 'Yb', 'Pt', 'Nd', 'Mg', 'Zr', 'Re', 'P', 'Sb', 'O', 'N', 'Zn', 'Au', 'Lu', 'Be', 'Cr', 'Ag', 'Pu', 'Si', 'Cu', 'Os', 'Li', 'Am', 'Pr', 'S', 'As', 'Ti', 'Nb', 'Eu', 'H', 'Br', 'La', 'Er', 'Sm', 'Cl', 'Sn', 'K', 'Sr', 'Rh', 'Se', 'U', 'Y', 'Bi', 'Ca', 'Ir']
-number_set  = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 env = MaterialEnvironment(element_set = element_set,
-                          number_set =  number_set,)
-print(env.state)
-print(env.num_steps_taken)
+                          comp_set =  comp_set,)
 
-env.step('a')
+# print(env.state)
+# print(env.num_steps_taken)
 
-print(env.state)
-print(env.num_steps_taken)
+env.step([(1., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)])
+env.step([(0., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)])
+env.step([(0., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)])       
+print('counter:', env.counter)
+print('state:',env.state)
+# print(env.state)
+# print(env.num_steps_taken)
+
+
