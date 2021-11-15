@@ -102,7 +102,7 @@ one_hot_to_comp_dict = {}
 for comp in comp_to_one_hot_dict.keys():
     one_hot_to_comp_dict[tuple(comp_to_one_hot_dict[comp])] = comp # find the inverse mapping
 
-def element_to_one_hot(comps):
+def comp_to_one_hot(comps):
     """
     converts a single composition, or a list of multiple composition into their one-hot form
 
@@ -146,7 +146,7 @@ def one_hot_to_comp(one_hot_encs):
 #        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 #        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 #        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]))
-# print(element_to_one_hot(['2', '9']))
-print(one_hot_to_comp([(0., 0., 1., 0., 0., 0., 0., 0., 0., 0.), (0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]))
+# print(comp_to_one_hot(['2', '9']))
+# print(one_hot_to_comp([(0., 0., 1., 0., 0., 0., 0., 0., 0., 0.), (0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]))
 # print(onehot_target('BaTiO3').reshape(1, 40, 115).shape)
 
