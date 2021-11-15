@@ -37,16 +37,21 @@ def onehot_target(target):
             print(target) 
     return char_seq_vec
 
-# find one-hot encoding dictionary
+# Find element to one-hot dictionary
 element_set = ['Te', 'Sc', 'C', 'Hg', 'Ru', 'Na', 'Co', 'Mo', 'I', 'Tm', 'F', 'Al', 'Pd', 'Fe', 'Th', 'Cs', 'Gd', 'W', 'Ta', 'Dy', 'Pb', 'Rb', 'Ba', 'Ce', 'Ga', 'Tl', 'Mn', 'B', 'Ni', 'Tb', 'Hf', 'Ge', 'V', 'Ho', 'In', 'Cd', 'Yb', 'Pt', 'Nd', 'Mg', 'Zr', 'Re', 'P', 'Sb', 'O', 'N', 'Zn', 'Au', 'Lu', 'Be', 'Cr', 'Ag', 'Pu', 'Si', 'Cu', 'Os', 'Li', 'Am', 'Pr', 'S', 'As', 'Ti', 'Nb', 'Eu', 'H', 'Br', 'La', 'Er', 'Sm', 'Cl', 'Sn', 'K', 'Sr', 'Rh', 'Se', 'U', 'Y', 'Bi', 'Ca', 'Ir']
-one_hot_enc = {}
+element_to_one_hot_dict = {}
 for element_idx in range(len(element_set)):
     element = element_set[element_idx]
     enc = np.zeros(len(element_set))
     enc[element_idx] = 1
-    one_hot_enc[element] = enc
+    element_to_one_hot_dict[element] = enc
 
-def one_hot_element(elements):
+# Find one-hot dictionary to element
+one_hot_to_element_dict = {}
+for element in element_to_one_hot_dict.keys():
+    one_hot_to_element_dict[tuple(element_to_one_hot_dict[element])] = element # find the inverse mapping
+
+def element_to_one_hot(elements):
     """
     converts a single element, or a list of multiple elements into their one-hot form
 
@@ -54,16 +59,44 @@ def one_hot_element(elements):
     elements: List. list of elements
 
     Returns:
-    one_hot_element: np.array() of shape (no. of elements in input of this function, no. of elements in element_set)
+    element_to_one_hot: np.array() of shape (no. of elements in input of this function, no. of elements in element_set)
     '''
 
     """
-    one_hot_element = []
+    element_to_one_hot = []
     for element in elements:
-        enc = one_hot_enc[element]
-        one_hot_element.append(enc)
-    return one_hot_element
+        enc = element_to_one_hot_dict[element]
+        element_to_one_hot.append(enc)
+    return element_to_one_hot
 
-print(one_hot_element(['Te']))
+def one_hot_to_element(one_hot_encs):
+    """
+    converts a single element, or a list of multiple elements in one-hot form into their string form
+
+    Args:
+    elements: List. list of elements in one-hot form 
+    i.e. [ tuple(1,0,...,0,0),
+           ...
+           tuple(0,1,...,0,0)]
+
+    Returns:
+    one_hot_to_element: List of elements in string form
+    """
+    one_hot_to_element = []
+    for enc in one_hot_encs:
+        element = one_hot_to_element_dict[enc]
+        one_hot_to_element.append(element)
+    return one_hot_to_element
+
+
+# print(element_to_one_hot(['Te', 'C', 'Ru']))
+print(one_hot_to_element(
+[(0., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]
+
+))
 # print(onehot_target('BaTiO3').reshape(1, 40, 115).shape)
 
