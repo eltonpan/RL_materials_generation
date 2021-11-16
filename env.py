@@ -60,10 +60,6 @@ class MaterialEnvironment():
 
         self.path = []
 
-    # @property
-    # def state(self):
-    #     return self.state
-
     @property
     def num_steps_taken(self):
         return self.counter
@@ -98,7 +94,7 @@ class MaterialEnvironment():
         Takes a step forward according to the action.
 
         Args:
-          action: List of np.array. 1st element is tuple of shape (1, num_elements), 2nd element is np.array of shape (1,10) 
+          action: List of 2 tuples. 1st element is tuple of shape (1, num_elements), 2nd element is np.array of shape (1,10) 
 
         Returns:
           results: Namedtuple containing the following fields:
@@ -133,45 +129,69 @@ class MaterialEnvironment():
                 except: # Might still be an empty compound for non-initial states
                     self.state = element + comp
 
-        print(self.state)
-
         self.counter += 1
         result = (self.state, self.reward()) # result is a tuple of new state and reward from taking the action
     
 env = MaterialEnvironment(element_set = element_set,
                           comp_set =  comp_set,)
 
-print('step:',env.num_steps_taken)
-print('state:',env.state)
-print('')
+# print('step:',env.num_steps_taken)
+# print('state:',env.state)
+# print('')
 
-env.step(
-     [(1., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.),
-      (0., 1., 0., 0., 0., 0., 0., 0., 0., 0.)
-     ])
+# env.step(
+#      [(1., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.),
+#       (0., 1., 0., 0., 0., 0., 0., 0., 0., 0.)
+#      ])
 
-print('step:',env.num_steps_taken)
-print('state:',env.state)
-print('reward:',env.reward())
-print('')
+# print('step:',env.num_steps_taken)
+# print('state:',env.state)
+# print('reward:',env.reward())
+# print('')
 
-env.step(
-     [(0., 0., 1., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.),
-      (0., 0., 1., 0., 0., 0., 0., 0., 0., 0.)
-     ])
 
-print('step:',env.num_steps_taken)
-print('state:',env.state)
-print('reward:',env.reward())
-print('')
+# env.step(
+#      [(0., 0., 1., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.),
+#       (0., 0., 1., 0., 0., 0., 0., 0., 0., 0.)
+#      ])
+
+# print('step:',env.num_steps_taken)
+# print('state:',env.state)
+# print('reward:',env.reward())
+# print('')
+def generate_random_act():
+    '''
+    Generates random action.
+    Returns: List. [tuple(element), tuple(composition)]
+    '''
+    # Sample random action
+    element = random.sample(element_set, 1)
+    element = tuple(element_to_one_hot(element)[0])
+    comp = random.sample(comp_set, 1)
+    comp = tuple(comp_to_one_hot(comp)[0])
+    action = [element, comp]
+    return action
+
+import random
+for i in range(5):
+    # Sample random action
+    action = generate_random_act()
+
+    # Take step with action
+    env.step(action)
+    print('step:', env.counter)
+    print('state:',env.state)
+    # print(env.num_steps_taken)
+    print('')
+
 
     
 # print('counter:', env.counter)
