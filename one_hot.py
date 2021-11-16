@@ -139,7 +139,7 @@ def one_hot_to_comp(one_hot_encs):
         one_hot_to_comp.append(comp)
     return one_hot_to_comp
 
-# Testing functions
+# ======= Testing functions =======
 # print(element_to_one_hot(['Te', 'C', 'Ru']))
 # print(one_hot_to_element([(0., 0., 0., 0, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 #        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
@@ -148,5 +148,6 @@ def one_hot_to_comp(one_hot_encs):
 #        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]))
 # print(comp_to_one_hot(['2', '9']))
 # print(one_hot_to_comp([(0., 0., 1., 0., 0., 0., 0., 0., 0., 0.), (0., 0., 0., 0., 0., 0., 0., 0., 0., 1.)]))
+
 # print(onehot_target('BaTiO3').reshape(1, 40, 115).shape)
 
