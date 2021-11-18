@@ -243,7 +243,7 @@ end = time.time()
 
 
 # Save Q_data
-# with open('./data/Q_data_random', 'wb') as f:
+# with open('./data/Q_data_random.pkl', 'wb') as f:
 #     pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)
 
 
