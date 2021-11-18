@@ -130,10 +130,10 @@ class DQN_pytorch(nn.Module):
     self.fc6 = nn.Linear(intermediate_dim, 1) # Prediction head - 2nd dense layer for h_combined
 
 
-  def forward(self, s_material, 
-                    s_step, 
-                    a_elem, 
-                    a_comp
+  def forward(self, s_material, # torch.Size([40, 115])
+                    s_step,     # torch.Size([5])
+                    a_elem,     # torch.Size([80])
+                    a_comp      # torch.Size([10])
                     ):
     # For s_material
     s_material = s_material.reshape(1,1,40,115).float() # Reshape for Conv2d
@@ -158,29 +158,29 @@ class DQN_pytorch(nn.Module):
     a_comp = self.act(a_comp) # Activation
 
     # Concatenate all hidden and predict Q
-    h_combined = torch.cat((s_material, s_step, a_elem, a_comp))
-    h_combined = self.fc5(h_combined) # Dense
+    h_combined = torch.cat((s_material, s_step, a_elem, a_comp)) # Cat to (4*64)
+    h_combined = self.fc5(h_combined) # Dense 1
     h_combined = self.act(h_combined) # Act
 
-    Q_pred = self.fc6(h_combined) # Dense with NO activation for final hidden layer
+    Q_pred = self.fc6(h_combined) # Dense 2 with NO activation for final hidden layer
 
     return Q_pred
 
 
-s_material = torch.tensor(onehot_target('BaTiO3'))
-# print(s_material.shape)
+s_material = torch.tensor(onehot_target(''))
+print(s_material.shape)
 
 s_step = torch.zeros(5)
 s_step[2] = 1.
-# print(s_step)
+print(s_step.shape)
 
 a_elem = torch.zeros(80)
 a_elem[1] = 1.
-# print(a_elem)
+print(a_elem.shape)
 
 a_comp = torch.zeros(10)
 a_comp[3] = 1.
-# print(a_comp)
+print(a_comp.shape)
 
 dqn = DQN_pytorch()
 output = dqn(s_material, s_step, a_elem, a_comp)

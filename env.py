@@ -1,8 +1,10 @@
 import numpy as np
-from one_hot import onehot_target, element_set, comp_set, one_hot_to_element, element_to_one_hot, one_hot_to_comp, comp_to_one_hot
+from one_hot import onehot_target, element_set, comp_set, one_hot_to_element, element_to_one_hot, one_hot_to_comp, comp_to_one_hot, step_to_one_hot, one_hot_to_step
 from CVAE import TempTimeGenerator
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import random
+import pickle
+import time
 
 # Load scaler
 compressed_inputs = np.load("data/ss_sg_inputs_impute_precs_onehot_targets_all_targets_1.npz") 
@@ -27,7 +29,7 @@ class MaterialEnvironment():
     def __init__(self, 
                 element_set,
                 comp_set,
-                init_mat = None,
+                init_mat = '',
                 max_steps = 5,
                 ):
         '''
@@ -42,7 +44,7 @@ class MaterialEnvironment():
         self.comp_set    = comp_set
         self.init_mat    = init_mat
         self.max_steps   = max_steps
-        self.state = None
+        self.state = ''
         self.counter = 0
 
         self.path = []
@@ -62,19 +64,23 @@ class MaterialEnvironment():
         self.terminated = False
 
     def reward(self):
-        # Predict sintering temperature of material using CVAE
-        op_arr = temp_gen.generate_samples(
-        onehot_target(self.state).reshape(1, 40, 115),
-        n_samples=100)
-        sinter_T = [] # List of generated sintering T
-        for conds in op_arr:
-            conds = np.reshape(conds, (8,))
-            temp_time = scaler.inverse_transform(conds.reshape(1, -1)).flatten()
-            if temp_time[1] > 0 and temp_time[5] > 0:
-                sinter_T.append(round(temp_time[1], 1))
-        sinter_T_pred = np.mean(sinter_T)
+        if self.counter == self.max_steps:
+            # Predict sintering temperature of material using CVAE
+            op_arr = temp_gen.generate_samples(
+            onehot_target(self.state).reshape(1, 40, 115),
+            n_samples=100)
+            sinter_T = [] # List of generated sintering T
+            for conds in op_arr:
+                conds = np.reshape(conds, (8,))
+                temp_time = scaler.inverse_transform(conds.reshape(1, -1)).flatten()
+                if temp_time[1] > 0 and temp_time[5] > 0:
+                    sinter_T.append(round(temp_time[1], 1))
+            sinter_T_pred = np.mean(sinter_T)
+            reward = -sinter_T_pred
+        else:
+            reward = 0
 
-        return sinter_T_pred
+        return reward
     
     def step(self, action):
         """
@@ -84,28 +90,24 @@ class MaterialEnvironment():
           action: List of 2 tuples. 1st element is tuple of shape (1, num_elements), 2nd element is np.array of shape (1,10) 
 
         Returns:
-          results: Namedtuple containing the following fields:
-            * state: The molecule reached after taking the action.
-            * reward: The reward get after taking the action.
-            * terminated: Whether this episode is terminated.
+            NA
 
-        Raises:
-          ValueError: If the number of steps taken exceeds the preset max_steps, or
-            the action is not in the set of valid_actions.
+
         """
-        # Record state and action
-        state_action = (self.state, self.counter, action)
-        self.path.append(state_action)
+    
 
         # Take action
         element, comp = action
         element = one_hot_to_element([element])[0]
         comp = one_hot_to_comp([comp])[0]
 
+        old_state = self.state
+
         if comp != '0': # Add element only if composition is non-zero
             add = True
         else:
             add = False
+
         if self.counter == 0: # If empty compound, initialize state
             if add: # Add element only if composition is non-zero
                 self.state = element + comp
@@ -115,9 +117,13 @@ class MaterialEnvironment():
                     self.state += element + comp
                 except: # Might still be an empty compound for non-initial states
                     self.state = element + comp
-
         self.counter += 1
-        result = (self.state, self.reward()) # result is a tuple of new state and reward from taking the action
+
+        reward = self.reward()
+
+        # Record state and action
+        s_a_r = ([onehot_target(old_state), step_to_one_hot([self.counter])[0]], action, reward) # One-hot states for storing into path, actions are already one-hot
+        self.path.append(s_a_r) # append (state, action, reward) - [material, step], [element, composition], reward
     
 env = MaterialEnvironment(element_set = element_set,
                           comp_set =  comp_set,)
@@ -154,6 +160,7 @@ env = MaterialEnvironment(element_set = element_set,
 # print('state:',env.state)
 # print('reward:',env.reward())
 # print('')
+
 def generate_random_act():
     '''
     Generates random action.
@@ -167,23 +174,79 @@ def generate_random_act():
     action = [element, comp]
     return action
 
-for i in range(5):
-    # Sample random action
-    action = generate_random_act()
+def generate_random_ep(max_steps = 5):
+    '''
+    Generates an episode with random policy
+    
+    Args:
+    max_steps: Int
 
-    # Take step with action
-    env.step(action)
-    print('step:', env.counter)
-    print('state:',env.state)
-    print('reward:',env.reward())
-    # print(env.num_steps_taken)
-    print('')
+    Returns: 
+    env.path (an episode): List of SAR data in the form of [[material, step], [element, composition], reward]
+    
+    '''
+    env.initialize()
+
+    for i in range(max_steps):
+        # Sample random action
+        action = generate_random_act()
+
+        # Take step with action
+        env.step(action)
+        print('step:', env.counter)
+        print('state:',env.state)
+        print('reward:',env.reward())
+        # print(env.num_steps_taken)
+        print('')
+    return env.path
+
+
+def extract_data_from_ep(episode, disc_factor =  0.9):
+    """
+    Extracts from each episode Q targets.
+    
+    Args:
+    episode: List of SAR data in the form of [[material, step], [element, composition], reward]
+    
+    Returns:
+    Q_data: List of [state, action, Q] datapoints
+    """
+    Q_data = []
+    for step in reversed(range(env.max_steps)):
+        state, action, reward = episode[step]
+
+        if step == env.max_steps - 1: # If terminal state
+            G = reward # Return = reward
+        else:
+            G = reward + disc_factor*G # Return = reward + discounted return of the PREVIOUS state
+
+        data_point = [state, action, G]
+        Q_data.append(data_point)
+    return Q_data
+
+
+# start = time.time()
+# Generate random episodes
+num_eps = 1000
+episodes = []
+for j in range(num_eps):
+    episode = generate_random_ep()
+    episodes.append(episode)
+
+Q_data_random = []
+# Extract Q_data from episodes
+for episode in episodes:
+    Q_data = extract_data_from_ep(episode)
+    Q_data_random.append(Q_data)
+end = time.time()
+# print('time taken:', end - start)
+
+
+# Save Q_data
+# with open('./data/Q_data_random', 'wb') as f:
+#     pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)
+
 
 
     
-# print('counter:', env.counter)
-# print('state:',env.state)
-# print(env.state)
-# print(env.num_steps_taken)
-
-
+        

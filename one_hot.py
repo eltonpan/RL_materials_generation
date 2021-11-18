@@ -2,8 +2,10 @@ import numpy as np
 import re
 from pymatgen import Composition, Element
 
+max_num_steps = 5
 element_set = ['Te', 'Sc', 'C', 'Hg', 'Ru', 'Na', 'Co', 'Mo', 'I', 'Tm', 'F', 'Al', 'Pd', 'Fe', 'Th', 'Cs', 'Gd', 'W', 'Ta', 'Dy', 'Pb', 'Rb', 'Ba', 'Ce', 'Ga', 'Tl', 'Mn', 'B', 'Ni', 'Tb', 'Hf', 'Ge', 'V', 'Ho', 'In', 'Cd', 'Yb', 'Pt', 'Nd', 'Mg', 'Zr', 'Re', 'P', 'Sb', 'O', 'N', 'Zn', 'Au', 'Lu', 'Be', 'Cr', 'Ag', 'Pu', 'Si', 'Cu', 'Os', 'Li', 'Am', 'Pr', 'S', 'As', 'Ti', 'Nb', 'Eu', 'H', 'Br', 'La', 'Er', 'Sm', 'Cl', 'Sn', 'K', 'Sr', 'Rh', 'Se', 'U', 'Y', 'Bi', 'Ca', 'Ir']
 comp_set  = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+step_set  = [x for x in range(1,max_num_steps+1)]
 
 def _get_target_char_sequence(compound_string):
     comp = Composition(compound_string).formula.replace(" ", "")
@@ -89,6 +91,61 @@ def one_hot_to_element(one_hot_encs):
         one_hot_to_element.append(element)
     return one_hot_to_element
 
+########
+# Find step to one-hot dictionary
+step_to_one_hot_dict = {}
+for step_idx in range(len(step_set)):
+    step = step_set[step_idx]
+    enc = np.zeros(len(step_set))
+    enc[step_idx] = 1
+    step_to_one_hot_dict[step] = enc
+
+# Find one-hot dictionary to step (inverse mapping)
+one_hot_to_step_dict = {}
+for step in step_to_one_hot_dict.keys():
+    one_hot_to_step_dict[tuple(step_to_one_hot_dict[step])] = step # find the inverse mapping
+
+def step_to_one_hot(steps):
+    """
+    converts a single step, or a list of multiple steps into their one-hot form
+
+    Args:
+    steps: List. list of steps
+
+    Returns:
+    step_to_one_hot: List of np.array each with shape (1, no. of steps in step_set)
+    '''
+
+    """
+    step_to_one_hot = []
+    for step in steps:
+        enc = step_to_one_hot_dict[step]
+        step_to_one_hot.append(enc)
+    return step_to_one_hot
+
+def one_hot_to_step(one_hot_encs):
+    """
+    converts a single step, or a list of multiple steps in one-hot form into their string form
+
+    Args:
+    one_hot_encs: List. list of steps in one-hot form (tuple since dictionary accepts immutable keys)
+    i.e. [ tuple(1,0,...,0,0),
+           ...
+           tuple(0,1,...,0,0)]
+
+    Returns:
+    one_hot_to_step: List of steps in string form
+    """
+    one_hot_to_step = []
+    for enc in one_hot_encs:
+        step = one_hot_to_step_dict[enc]
+        one_hot_to_step.append(step)
+    return one_hot_to_step
+
+
+
+########
+
 # Find composition to one-hot dictionary
 comp_to_one_hot_dict = {}
 for comp_idx in range(len(comp_set)):
@@ -151,3 +208,5 @@ def one_hot_to_comp(one_hot_encs):
 
 # print(onehot_target('BaTiO3').reshape(1, 40, 115).shape)
 
+print(step_to_one_hot([2]))
+print(one_hot_to_step([(0., 0., 0., 0., 1.), (0., 1., 0., 0., 0.)]))
