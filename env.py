@@ -2,6 +2,7 @@ import numpy as np
 from one_hot import onehot_target, element_set, comp_set, one_hot_to_element, element_to_one_hot, one_hot_to_comp, comp_to_one_hot
 from CVAE import TempTimeGenerator
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import random
 
 # Load scaler
 compressed_inputs = np.load("data/ss_sg_inputs_impute_precs_onehot_targets_all_targets_1.npz") 
@@ -18,20 +19,6 @@ x_temp = np.reshape(scaler.fit_transform(x_temp), (-1, 8, 1))
 temp_gen = TempTimeGenerator()
 temp_gen.build_nn_model()
 temp_gen.load_models(model_variant="epochs_40", load_path="cvae_models/")
-
-# # Make single prediction
-# op_arr = temp_gen.generate_samples(
-#         onehot_target('Te3').reshape(1, 40, 115),
-#         n_samples=100
-#         )
-# sinter_T = [] # List of generated sintering T
-# for conds in op_arr:
-#     conds = np.reshape(conds, (8,))
-#     temp_time = scaler.inverse_transform(conds.reshape(1, -1)).flatten()
-#     if temp_time[1] > 0 and temp_time[5] > 0:
-#         sinter_T.append(round(temp_time[1], 1))
-# sinter_T_pred = np.mean(sinter_T)
-# # print(sinter_T_pred)
 
 class MaterialEnvironment():
     """
@@ -180,7 +167,6 @@ def generate_random_act():
     action = [element, comp]
     return action
 
-import random
 for i in range(5):
     # Sample random action
     action = generate_random_act()
@@ -189,6 +175,7 @@ for i in range(5):
     env.step(action)
     print('step:', env.counter)
     print('state:',env.state)
+    print('reward:',env.reward())
     # print(env.num_steps_taken)
     print('')
 

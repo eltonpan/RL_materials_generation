@@ -9,8 +9,12 @@ from keras.layers.merge import Concatenate, Subtract
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping
+import torch
+from torch import nn
+from one_hot import _get_target_char_sequence, onehot_target # for testing purposes, to be deleted
 
-class DQN(object):
+# Keras DQN model
+class DQN_keras(object):
     def __init__(self):
         self.dqn = None
 
@@ -103,7 +107,82 @@ class DQN(object):
     #     self.encoder.load_weights(load_path + model_variant + "_small_temp_time_encoder.h5")
     #     self.decoder.load_weights(load_path  + model_variant + "_small_temp_time_decoder.h5")
 
-dqn = DQN()
-dqn.build_nn_model()
-dqn.dqn.summary()
-# print(dqn)
+# dqn = DQN_keras()
+# dqn.build_nn_model()
+# dqn.dqn.summary()
+
+class DQN_pytorch(nn.Module):
+  def __init__(self, max_target_length=40,
+                     max_step_size = 5,
+                     num_elem = 80,
+                     num_comp = 10,
+                     prec_conv_window = 3,
+                     intermediate_dim = 64,
+):
+    super(DQN_pytorch, self).__init__()
+    self.conv = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3) # Conv for s_material
+    self.act = nn.ReLU() # Activation
+    self.fc1 = nn.Linear(3996, intermediate_dim) # Dense layer for s_material
+    self.fc2 = nn.Linear(max_step_size, intermediate_dim) # Dense layer for s_step
+    self.fc3 = nn.Linear(num_elem, intermediate_dim) # Dense layer for a_elem
+    self.fc4 = nn.Linear(num_comp, intermediate_dim) # Dense layer for a_comp
+    self.fc5 = nn.Linear(4*intermediate_dim, intermediate_dim) # 1st dense layer for h_combined
+    self.fc6 = nn.Linear(intermediate_dim, 1) # Prediction head - 2nd dense layer for h_combined
+
+
+  def forward(self, s_material, 
+                    s_step, 
+                    a_elem, 
+                    a_comp
+                    ):
+    # For s_material
+    s_material = s_material.reshape(1,1,40,115).float() # Reshape for Conv2d
+    s_material = self.conv(s_material) # 1st conv
+    s_material = self.act(s_material) # ReLU
+    s_material = self.conv(s_material) # 2nd conv
+    s_material = self.act(s_material) # ReLU
+    s_material = torch.flatten(s_material) # Flatten to (3996)
+    s_material = self.fc1(s_material) # Dense to (64)
+    s_material = self.act(s_material) # Activation
+
+    # For s_step
+    s_step = self.fc2(s_step) # Dense to (64)
+    s_step = self.act(s_step) # Activation
+
+    # For a_elem
+    a_elem = self.fc3(a_elem) # Dense to (64)
+    a_elem = self.act(a_elem) # Activation
+
+    # For a_comp
+    a_comp = self.fc4(a_comp) # Dense to (64)
+    a_comp = self.act(a_comp) # Activation
+
+    # Concatenate all hidden and predict Q
+    h_combined = torch.cat((s_material, s_step, a_elem, a_comp))
+    h_combined = self.fc5(h_combined) # Dense
+    h_combined = self.act(h_combined) # Act
+
+    Q_pred = self.fc6(h_combined) # Dense with NO activation for final hidden layer
+
+    return Q_pred
+
+
+s_material = torch.tensor(onehot_target('BaTiO3'))
+# print(s_material.shape)
+
+s_step = torch.zeros(5)
+s_step[2] = 1.
+# print(s_step)
+
+a_elem = torch.zeros(80)
+a_elem[1] = 1.
+# print(a_elem)
+
+a_comp = torch.zeros(10)
+a_comp[3] = 1.
+# print(a_comp)
+
+dqn = DQN_pytorch()
+output = dqn(s_material, s_step, a_elem, a_comp)
+print(output)
+print(output.shape)
