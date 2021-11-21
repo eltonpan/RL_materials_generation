@@ -120,47 +120,53 @@ class DQN_pytorch(nn.Module):
                      intermediate_dim = 64,
 ):
     super(DQN_pytorch, self).__init__()
-    self.conv = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3) # Conv for s_material
-    self.act = nn.ReLU() # Activation
-    self.fc1 = nn.Linear(3996, intermediate_dim) # Dense layer for s_material
-    self.fc2 = nn.Linear(max_step_size, intermediate_dim) # Dense layer for s_step
-    self.fc3 = nn.Linear(num_elem, intermediate_dim) # Dense layer for a_elem
-    self.fc4 = nn.Linear(num_comp, intermediate_dim) # Dense layer for a_comp
-    self.fc5 = nn.Linear(4*intermediate_dim, intermediate_dim) # 1st dense layer for h_combined
-    self.fc6 = nn.Linear(intermediate_dim, 1) # Prediction head - 2nd dense layer for h_combined
+    self.conv = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3).float() # Conv for s_material
+    self.act = nn.ReLU().float() # Activation
+    self.fc1 = nn.Linear(3996, intermediate_dim).float() # Dense layer for s_material
+    self.fc2 = nn.Linear(max_step_size, intermediate_dim).float() # Dense layer for s_step
+    self.fc3 = nn.Linear(num_elem, intermediate_dim).float() # Dense layer for a_elem
+    self.fc4 = nn.Linear(num_comp, intermediate_dim).float() # Dense layer for a_comp
+    self.fc5 = nn.Linear(4*intermediate_dim, intermediate_dim).float() # 1st dense layer for h_combined
+    self.fc6 = nn.Linear(intermediate_dim, 1).float() # Prediction head - 2nd dense layer for h_combined
 
 
-  def forward(self, s_material, # torch.Size([40, 115])
-                    s_step,     # torch.Size([5])
-                    a_elem,     # torch.Size([80])
-                    a_comp      # torch.Size([10])
+  def forward(self, s_material, # torch.Size([batch_size, 40, 115])
+                    s_step,     # torch.Size([batch_size, 5])
+                    a_elem,     # torch.Size([batch_size, 80])
+                    a_comp      # torch.Size([batch_size, 10])
                     ):
     # For s_material
-    s_material = s_material.reshape(1,1,40,115).float() # Reshape for Conv2d
+    s_material = s_material.reshape(s_material.shape[0],1,40,115).float() # Reshape for Conv2d  
     s_material = self.conv(s_material) # 1st conv
     s_material = self.act(s_material) # ReLU
     s_material = self.conv(s_material) # 2nd conv
     s_material = self.act(s_material) # ReLU
-    s_material = torch.flatten(s_material) # Flatten to (3996)
+    s_material = s_material.reshape(s_material.shape[0],3996) # batch size x 39996
     s_material = self.fc1(s_material) # Dense to (64)
     s_material = self.act(s_material) # Activation
 
     # For s_step
-    s_step = self.fc2(s_step) # Dense to (64)
+    s_step = self.fc2(s_step.float())  # Dense to (64)
     s_step = self.act(s_step) # Activation
 
     # For a_elem
-    a_elem = self.fc3(a_elem) # Dense to (64)
+    a_elem = self.fc3(a_elem.float())   # Dense to (64)
     a_elem = self.act(a_elem) # Activation
 
     # For a_comp
-    a_comp = self.fc4(a_comp) # Dense to (64)
+    a_comp = self.fc4(a_comp.float())  # Dense to (64)
     a_comp = self.act(a_comp) # Activation
 
     # Concatenate all hidden and predict Q
-    h_combined = torch.cat((s_material, s_step, a_elem, a_comp)) # Cat to (4*64)
+    # print('input shapes')
+    # print(s_material.shape)
+    # print(s_step.shape)
+    # print(a_elem.shape)
+    # print(a_comp.shape)
+    h_combined = torch.cat((s_material, s_step, a_elem, a_comp),1) # Cat to (batch_size, 4*64) hence cat across columns hence index 1
+    # print(h_combined.shape)
     h_combined = self.fc5(h_combined) # Dense 1
-    h_combined = self.act(h_combined) # Act
+    a_comp = self.act(h_combined) # Act
 
     Q_pred = self.fc6(h_combined) # Dense 2 with NO activation for final hidden layer
 
@@ -168,18 +174,22 @@ class DQN_pytorch(nn.Module):
 
 
 s_material = torch.tensor(onehot_target(''))
+s_material = s_material.reshape(1, s_material.shape[0], s_material.shape[1])
 print(s_material.shape)
 
 s_step = torch.zeros(5)
 s_step[2] = 1.
+s_step = s_step.reshape(1, s_step.shape[0])
 print(s_step.shape)
 
 a_elem = torch.zeros(80)
 a_elem[1] = 1.
+a_elem = a_elem.reshape(1, a_elem.shape[0])
 print(a_elem.shape)
 
 a_comp = torch.zeros(10)
 a_comp[3] = 1.
+a_comp = a_comp.reshape(1, a_comp.shape[0])
 print(a_comp.shape)
 
 dqn = DQN_pytorch()
