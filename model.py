@@ -120,7 +120,7 @@ class DQN_pytorch(nn.Module):
                      intermediate_dim = 64,
 ):
     super(DQN_pytorch, self).__init__()
-    self.conv = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3).float() # Conv for s_material
+    self.conv = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3)# Conv for s_material
     self.act = nn.ReLU().float() # Activation
     self.fc1 = nn.Linear(3996, intermediate_dim).float() # Dense layer for s_material
     self.fc2 = nn.Linear(max_step_size, intermediate_dim).float() # Dense layer for s_step
