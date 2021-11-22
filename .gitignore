@@ -1,4 +1,5 @@
 id_rsa
 id_rsa_old
 data/Q_data_random.pkl
+data/Q_data_trained.pkl
 __pycache__
