@@ -1,6 +1,10 @@
 import numpy as np
 import re
-from pymatgen import Composition, Element
+# from pymatgen import Composition, Element # Old version of pymatgen in syn_gen_release env
+from pymatgen.core.composition import Composition, Element # Updated for dqn env
+import chemml.chem.magpie_python as magpie
+import chemml
+import pandas as pd
 
 max_num_steps = 5
 element_set = ['Te', 'Sc', 'C', 'Hg', 'Ru', 'Na', 'Co', 'Mo', 'I', 'Tm', 'F', 'Al', 'Pd', 'Fe', 'Th', 'Cs', 'Gd', 'W', 'Ta', 'Dy', 'Pb', 'Rb', 'Ba', 'Ce', 'Ga', 'Tl', 'Mn', 'B', 'Ni', 'Tb', 'Hf', 'Ge', 'V', 'Ho', 'In', 'Cd', 'Yb', 'Pt', 'Nd', 'Mg', 'Zr', 'Re', 'P', 'Sb', 'O', 'N', 'Zn', 'Au', 'Lu', 'Be', 'Cr', 'Ag', 'Pu', 'Si', 'Cu', 'Os', 'Li', 'Am', 'Pr', 'S', 'As', 'Ti', 'Nb', 'Eu', 'H', 'Br', 'La', 'Er', 'Sm', 'Cl', 'Sn', 'K', 'Sr', 'Rh', 'Se', 'U', 'Y', 'Bi', 'Ca', 'Ir']
@@ -40,6 +44,52 @@ def onehot_target(target):
     except Exception as e:
             print(target) 
     return char_seq_vec
+
+meredig = chemml.chem.magpie_python.MeredigAttributeGenerator()
+elem_frac = chemml.chem.magpie_python.ElementFractionAttributeGenerator()
+val_shell = chemml.chem.magpie_python.ValenceShellAttributeGenerator()
+charge_dep = chemml.chem.magpie_python.ChargeDependentAttributeGenerator()
+elem_prop = chemml.chem.magpie_python.ElementalPropertyAttributeGenerator()
+ionicity = chemml.chem.magpie_python.IonicityAttributeGenerator()
+stoichio = chemml.chem.magpie_python.StoichiometricAttributeGenerator()
+yang_omega = chemml.chem.magpie_python.YangOmegaAttributeGenerator()
+
+def featurize_target(target, feat_to_included = [
+                                                'meredig',
+                                                'elem_frac',
+                                                'val_shell',
+                                                'charge_dep',
+                                                'elem_prop',
+                                                'ionicity',
+                                                'stoichio',
+                                                'yang_omega',
+                                                ]
+                    ): 
+    '''
+    Featurization of material using Magpie embeddings
+
+    Arg:
+    target: Str.
+    feat_to_included: List (of Str). Features to be included. Default all.
+
+    Returns:
+    concat: np.array of concatenated features of the material
+    '''
+    chemical = magpie.CompositionEntry(composition=target)
+    features =  {}
+    features['meredig']    = meredig.generate_features(entries = [chemical])
+    features['elem_frac']  = elem_frac.generate_features(entries = [chemical])
+    features['val_shell']  = val_shell.generate_features(entries = [chemical])
+    features['charge_dep'] = charge_dep.generate_features(entries = [chemical])
+    features['elem_prop']  = elem_prop.generate_features(entries = [chemical])
+    features['ionicity']   = ionicity.generate_features(entries = [chemical])
+    features['stoichio']   = stoichio.generate_features(entries = [chemical])
+    features['yang_omega'] = yang_omega.generate_features(entries = [chemical])
+
+    concat = pd.concat([features[feat] for feat in feat_to_included], axis = 1)
+    return concat
+
+print(featurize_target('BaTiO3'))
 
 # Find element to one-hot dictionary
 element_to_one_hot_dict = {}
@@ -208,5 +258,5 @@ def one_hot_to_comp(one_hot_encs):
 
 # print(onehot_target('BaTiO3').reshape(1, 40, 115).shape)
 
-print(step_to_one_hot([2]))
-print(one_hot_to_step([(0., 0., 0., 0., 1.), (0., 1., 0., 0., 0.)]))
+# print(step_to_one_hot([2]))
+# print(one_hot_to_step([(0., 0., 0., 0., 1.), (0., 1., 0., 0., 0.)]))

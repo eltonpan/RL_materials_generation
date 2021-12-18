@@ -220,28 +220,30 @@ def extract_data_from_ep(episode, disc_factor =  0.9):
         data_point = [state, action, G]
         Q_data.append(data_point)
     return Q_data
-
+ 
 # ========= FOR RANDOM POLICY ===========
-# start = time.time()
-# Generate random episodes
-# num_eps = 1000
-# episodes = []
-# for j in range(num_eps):
-#     episode = generate_random_ep()
-#     episodes.append(episode)
+if __name__ == "__main__":
+    start = time.time()
+    # Generate random episodes
+    num_eps = 1000
+    episodes = []
+    for j in range(num_eps):
+        episode = generate_random_ep()
+        episodes.append(episode)
 
-# Q_data_random = []
-# # Extract Q_data from episodes
-# for episode in episodes:
-#     Q_data = extract_data_from_ep(episode)
-#     Q_data_random.append(Q_data)
-# end = time.time()
-# print('time taken:', end - start)
+    Q_data_random = []
+    # Extract Q_data from episodes
+    for episode in episodes:
+        Q_data = extract_data_from_ep(episode)
+        Q_data_random.append(Q_data)
+    end = time.time()
+    print('time taken:', end - start)
 
 
 # Save Q_data
-# with open('./data/Q_data_random.pkl', 'wb') as f:
-#     pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)
+if __name__ == "__main__":
+    with open('./data/Q_data_random.pkl', 'wb') as f:
+        pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)
 
 
 

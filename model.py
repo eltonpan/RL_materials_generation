@@ -7,7 +7,8 @@ from keras.layers import (GRU, Conv1D, Conv2D, Dense, Dropout, Embedding, Flatte
                           TimeDistributed, Masking)
 from keras.layers.merge import Concatenate, Subtract
 from keras.models import Model
-from keras.optimizers import Adam
+# from keras.optimizers import Adam # Old version in syn_gen_release env
+from tensorflow.keras.optimizers import Adam # Updated for dqn env
 from keras.callbacks import EarlyStopping
 import torch
 from torch import nn
@@ -120,15 +121,20 @@ class DQN_pytorch(nn.Module):
                      intermediate_dim = 64,
 ):
     super(DQN_pytorch, self).__init__()
-    self.conv = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3)# Conv for s_material
-    self.act = nn.ReLU().float() # Activation
-    self.fc1 = nn.Linear(3996, intermediate_dim).float() # Dense layer for s_material
-    self.fc2 = nn.Linear(max_step_size, intermediate_dim).float() # Dense layer for s_step
-    self.fc3 = nn.Linear(num_elem, intermediate_dim).float() # Dense layer for a_elem
-    self.fc4 = nn.Linear(num_comp, intermediate_dim).float() # Dense layer for a_comp
-    self.fc5 = nn.Linear(4*intermediate_dim, intermediate_dim).float() # 1st dense layer for h_combined
-    self.fc6 = nn.Linear(intermediate_dim, 1).float() # Prediction head - 2nd dense layer for h_combined
+    self.conv1 = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3)# 1st Conv for s_material
+    self.conv2 = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3)# 2nd Conv for s_material
+    # self.conv3 = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3)# 3rd Conv for s_material
+    self.act = nn.LeakyReLU() # Activation
+    # self.fc1 = nn.Linear(3706, intermediate_dim) # Dense layer for s_material (for 3 conv)
+    self.fc1 = nn.Linear(3996, intermediate_dim) # Dense layer for s_material (for 2 conv)
+    # self.fc1 = nn.Linear(4294, intermediate_dim) # Dense layer for s_material (for only 1 conv)
+    self.fc2 = nn.Linear(max_step_size, intermediate_dim) # Dense layer for s_step
+    self.fc3 = nn.Linear(num_elem, intermediate_dim) # Dense layer for a_elem
+    self.fc4 = nn.Linear(num_comp, intermediate_dim) # Dense layer for a_comp
+    self.fc5 = nn.Linear(4*intermediate_dim, intermediate_dim) # 1st dense layer for h_combined
+    self.fc6 = nn.Linear(intermediate_dim, 1) # Prediction head - 2nd dense layer for h_combined
 
+    # self.fc_flatten_s_material = nn.Linear(40*115,intermediate_dim) # for flattening s_material
 
   def forward(self, s_material, # torch.Size([batch_size, 40, 115])
                     s_step,     # torch.Size([batch_size, 5])
@@ -136,14 +142,24 @@ class DQN_pytorch(nn.Module):
                     a_comp      # torch.Size([batch_size, 10])
                     ):
     # For s_material
+    s_material_before_r = s_material[0]
     s_material = s_material.reshape(s_material.shape[0],1,40,115).float() # Reshape for Conv2d  
-    s_material = self.conv(s_material) # 1st conv
+    s_material_after_r = s_material[0][0]
+    s_material = self.conv1(s_material) # 1st conv
     s_material = self.act(s_material) # ReLU
-    s_material = self.conv(s_material) # 2nd conv
+    s_material = self.conv2(s_material) # 2nd conv
     s_material = self.act(s_material) # ReLU
-    s_material = s_material.reshape(s_material.shape[0],3996) # batch size x 39996
+    # s_material = self.conv3(s_material) # 3rd conv
+    # s_material = self.act(s_material) # ReLU
+    # print(s_material.shape)
+    s_material = s_material.reshape(s_material.shape[0],s_material.shape[-2]*s_material.shape[-1]) # batch size x 2D size after conv layer
     s_material = self.fc1(s_material) # Dense to (64)
     s_material = self.act(s_material) # Activation
+
+    # # For s_material - flatten
+    # s_material = torch.flatten(s_material, start_dim = 1, end_dim = -1).float()
+    # s_material = self.fc_flatten_s_material(s_material) # Dense to (64)
+    # s_material = self.act(s_material) # Activation
 
     # For s_step
     s_step = self.fc2(s_step.float())  # Dense to (64)
@@ -163,36 +179,41 @@ class DQN_pytorch(nn.Module):
     # print(s_step.shape)
     # print(a_elem.shape)
     # print(a_comp.shape)
+    # print('s_material:', torch.mean(s_material))
+    # print('s_step:', torch.mean(s_step))
+    # print('a_elem:', torch.mean(a_elem))
+    # print('a_comp:', torch.mean(a_comp))
+
     h_combined = torch.cat((s_material, s_step, a_elem, a_comp),1) # Cat to (batch_size, 4*64) hence cat across columns hence index 1
     # print(h_combined.shape)
     h_combined = self.fc5(h_combined) # Dense 1
-    a_comp = self.act(h_combined) # Act
+    h_combined = self.act(h_combined) # Act
 
     Q_pred = self.fc6(h_combined) # Dense 2 with NO activation for final hidden layer
 
     return Q_pred
 
+if __name__ == "__main__":
+    s_material = torch.tensor(onehot_target('BaTiO3'))
+    s_material = s_material.reshape(1, s_material.shape[0], s_material.shape[1])
+    print(s_material.shape)
 
-s_material = torch.tensor(onehot_target(''))
-s_material = s_material.reshape(1, s_material.shape[0], s_material.shape[1])
-print(s_material.shape)
+    s_step = torch.zeros(5)
+    s_step[2] = 1.
+    s_step = s_step.reshape(1, s_step.shape[0])
+    print(s_step.shape)
 
-s_step = torch.zeros(5)
-s_step[2] = 1.
-s_step = s_step.reshape(1, s_step.shape[0])
-print(s_step.shape)
+    a_elem = torch.zeros(80)
+    a_elem[1] = 1.
+    a_elem = a_elem.reshape(1, a_elem.shape[0])
+    print(a_elem.shape)
 
-a_elem = torch.zeros(80)
-a_elem[1] = 1.
-a_elem = a_elem.reshape(1, a_elem.shape[0])
-print(a_elem.shape)
+    a_comp = torch.zeros(10)
+    a_comp[3] = 1.
+    a_comp = a_comp.reshape(1, a_comp.shape[0])
+    print(a_comp.shape)
 
-a_comp = torch.zeros(10)
-a_comp[3] = 1.
-a_comp = a_comp.reshape(1, a_comp.shape[0])
-print(a_comp.shape)
-
-dqn = DQN_pytorch()
-output = dqn(s_material, s_step, a_elem, a_comp)
-print(output)
-print(output.shape)
+    dqn = DQN_pytorch()
+    output = dqn(s_material, s_step, a_elem, a_comp)
+    print(output)
+    print(output.shape)

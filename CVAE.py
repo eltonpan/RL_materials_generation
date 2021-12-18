@@ -7,7 +7,8 @@ from keras.layers import (GRU, Conv1D, Conv2D, Dense, Dropout, Embedding, Flatte
                           TimeDistributed, Masking)
 from keras.layers.merge import Concatenate, Subtract
 from keras.models import Model
-from keras.optimizers import Adam
+# from keras.optimizers import Adam # Old version in syn_gen_release env
+from tensorflow.keras.optimizers import Adam # Updated for dqn env
 from keras.callbacks import EarlyStopping
 
 class TempTimeGenerator(object):
@@ -63,8 +64,10 @@ class TempTimeGenerator(object):
 
         decoder_h = Dense(intermediate_dim, activation="relu", name="hidden_dec")
         decoder_h_repeat = RepeatVector(temp_time_len, name="h_rep_dec")
-        decoder_h_gru_1 = GRU(rnn_dim, return_sequences=True, name="recurrent_dec_1")
-        decoder_h_gru_2 = GRU(rnn_dim, return_sequences=True, name="recurrent_dec_2")
+        # decoder_h_gru_1 = GRU(rnn_dim, return_sequences=True, name="recurrent_dec_1") # old for syn_gen_release env
+        # decoder_h_gru_2 = GRU(rnn_dim, return_sequences=True, name="recurrent_dec_2") # old for syn_gen_release env
+        decoder_h_gru_1 = GRU(rnn_dim, return_sequences=True, name="recurrent_dec_1", reset_after=False) # new for dqn env
+        decoder_h_gru_2 = GRU(rnn_dim, return_sequences=True, name="recurrent_dec_2", reset_after=False) # new for dqn env
         decoder_synth = TimeDistributed(Dense(1), name="synth_decoded")
 
         h_decoded = decoder_h(z_conditional)
