@@ -12,7 +12,7 @@ from tensorflow.keras.optimizers import Adam # Updated for dqn env
 from keras.callbacks import EarlyStopping
 import torch
 from torch import nn
-from one_hot import _get_target_char_sequence, onehot_target # for testing purposes, to be deleted
+from one_hot import _get_target_char_sequence, onehot_target, featurize_target, feature_calculators # for testing purposes, to be deleted
 
 # Keras DQN model
 class DQN_keras(object):
@@ -116,6 +116,7 @@ class DQN_pytorch(nn.Module):
   def __init__(self, max_target_length=40,
                      max_step_size = 5,
                      num_elem = 80,
+                    # num_elem = 13,
                      num_comp = 10,
                      prec_conv_window = 3,
                      intermediate_dim = 64,
@@ -123,11 +124,9 @@ class DQN_pytorch(nn.Module):
     super(DQN_pytorch, self).__init__()
     self.conv1 = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3)# 1st Conv for s_material
     self.conv2 = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3)# 2nd Conv for s_material
-    # self.conv3 = nn.Conv2d(in_channels = 1, out_channels = 1, kernel_size = 3)# 3rd Conv for s_material
     self.act = nn.LeakyReLU() # Activation
-    # self.fc1 = nn.Linear(3706, intermediate_dim) # Dense layer for s_material (for 3 conv)
-    self.fc1 = nn.Linear(3996, intermediate_dim) # Dense layer for s_material (for 2 conv)
-    # self.fc1 = nn.Linear(4294, intermediate_dim) # Dense layer for s_material (for only 1 conv)
+    self.fc1 =  nn.Linear(len(feature_calculators.feature_labels()), intermediate_dim) # Dense layer for s_material (Magpie)
+    # self.fc1 = nn.Linear(3996, intermediate_dim) # Dense layer for s_material (for 2 conv)
     self.fc2 = nn.Linear(max_step_size, intermediate_dim) # Dense layer for s_step
     self.fc3 = nn.Linear(num_elem, intermediate_dim) # Dense layer for a_elem
     self.fc4 = nn.Linear(num_comp, intermediate_dim) # Dense layer for a_comp
@@ -141,20 +140,20 @@ class DQN_pytorch(nn.Module):
                     a_elem,     # torch.Size([batch_size, 80])
                     a_comp      # torch.Size([batch_size, 10])
                     ):
-    # For s_material
-    s_material_before_r = s_material[0]
-    s_material = s_material.reshape(s_material.shape[0],1,40,115).float() # Reshape for Conv2d  
-    s_material_after_r = s_material[0][0]
-    s_material = self.conv1(s_material) # 1st conv
-    s_material = self.act(s_material) # ReLU
-    s_material = self.conv2(s_material) # 2nd conv
-    s_material = self.act(s_material) # ReLU
-    # s_material = self.conv3(s_material) # 3rd conv
+    # For s_material - Magpie features (https://hackingmaterials.lbl.gov/matminer/matminer.featurizers.html)
+    s_material = self.fc1(s_material)
+    s_material = self.act(s_material)
+
+    # # For s_material - convolution based on Chris's CVAE model
+    # s_material = s_material.reshape(s_material.shape[0],1,40,115).float() # Reshape for Conv2d  
+    # s_material = self.conv1(s_material) # 1st conv
     # s_material = self.act(s_material) # ReLU
-    # print(s_material.shape)
-    s_material = s_material.reshape(s_material.shape[0],s_material.shape[-2]*s_material.shape[-1]) # batch size x 2D size after conv layer
-    s_material = self.fc1(s_material) # Dense to (64)
-    s_material = self.act(s_material) # Activation
+    # s_material = self.conv2(s_material) # 2nd conv
+    # s_material = self.act(s_material) # ReLU
+    # # print(s_material.shape)
+    # s_material = s_material.reshape(s_material.shape[0],s_material.shape[-2]*s_material.shape[-1]) # batch size x 2D size after conv layer
+    # s_material = self.fc1(s_material) # Dense to (64)
+    # s_material = self.act(s_material) # Activation
 
     # # For s_material - flatten
     # s_material = torch.flatten(s_material, start_dim = 1, end_dim = -1).float()
@@ -193,9 +192,36 @@ class DQN_pytorch(nn.Module):
 
     return Q_pred
 
+# # For testing dqn conv
+# if __name__ == "__main__":
+#     s_material = torch.tensor(onehot_target('BaTiO3'))
+#     s_material = s_material.reshape(1, s_material.shape[0], s_material.shape[1])
+#     print(s_material.shape)
+
+#     s_step = torch.zeros(5)
+#     s_step[2] = 1.
+#     s_step = s_step.reshape(1, s_step.shape[0])
+#     print(s_step.shape)
+
+#     a_elem = torch.zeros(80)
+#     a_elem[1] = 1.
+#     a_elem = a_elem.reshape(1, a_elem.shape[0])
+#     print(a_elem.shape)
+
+#     a_comp = torch.zeros(10)
+#     a_comp[3] = 1.
+#     a_comp = a_comp.reshape(1, a_comp.shape[0])
+#     print(a_comp.shape)
+
+#     dqn = DQN_pytorch()
+#     output = dqn(s_material, s_step, a_elem, a_comp)
+#     print(output)
+#     print(output.shape)
+
+# For testing dqn conv
 if __name__ == "__main__":
-    s_material = torch.tensor(onehot_target('BaTiO3'))
-    s_material = s_material.reshape(1, s_material.shape[0], s_material.shape[1])
+    s_material = torch.tensor(featurize_target('BaTiO3'))
+    s_material = s_material.reshape(1, s_material.shape[0])
     print(s_material.shape)
 
     s_step = torch.zeros(5)
