@@ -1,5 +1,5 @@
 import numpy as np
-from one_hot import onehot_target, element_set, comp_set, one_hot_to_element, element_to_one_hot, one_hot_to_comp, comp_to_one_hot, step_to_one_hot, one_hot_to_step
+from one_hot import feature_calculators, featurize_target, onehot_target, element_set, comp_set, one_hot_to_element, element_to_one_hot, one_hot_to_comp, comp_to_one_hot, step_to_one_hot, one_hot_to_step
 from CVAE import TempTimeGenerator
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import random
@@ -119,7 +119,12 @@ class MaterialEnvironment():
         reward = self.reward()
 
         # Record state and action
-        s_a_r = ([onehot_target(old_state), step_to_one_hot([self.counter])[0]], action, reward) # One-hot states for storing into path, actions are already one-hot
+        # s_a_r = ([onehot_target(old_state), step_to_one_hot([self.counter])[0]], action, reward) # One-hot states for storing into path, actions are already one-hot
+        if old_state == '': # if empty string (starting state), don't featurize with Magpie, but with a vector of zeroes instead
+            s_a_r = ([featurize_target(old_state), step_to_one_hot([self.counter])[0]], action, reward) # One-hot states for storing into path, actions are already one-hot
+        else:
+            s_a_r = ([featurize_target(old_state), step_to_one_hot([self.counter])[0]], action, reward) # One-hot states for storing into path, actions are already one-hot
+
         self.path.append(s_a_r) # append (state, action, reward) - [material, step], [element, composition], reward
     
 env = MaterialEnvironment(element_set = element_set,
