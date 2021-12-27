@@ -114,7 +114,7 @@ class MaterialEnvironment():
                     self.state += element + comp
                 except: # Might still be an empty compound for non-initial states
                     self.state = element + comp
-        self.counter += 1
+        self.counter += 1 # Counter increased before since we start with step 1 instead of 0 (Just convention)
 
         reward = self.reward()
 
@@ -230,7 +230,7 @@ def extract_data_from_ep(episode, disc_factor =  0.9):
 if __name__ == "__main__":
     start = time.time()
     # Generate random episodes
-    num_eps = 1000
+    num_eps = 10000
     episodes = []
     for j in range(num_eps):
         episode = generate_random_ep()
