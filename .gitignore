@@ -5,3 +5,5 @@ data/Q_data_trained.pkl
 __pycache__
 data/
 plots/
+dqn_models/
+training_data/
