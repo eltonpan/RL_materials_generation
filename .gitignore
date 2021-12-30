@@ -4,6 +4,10 @@ data/Q_data_random.pkl
 data/Q_data_trained.pkl
 __pycache__
 data/
+<<<<<<< HEAD
 plots/
 dqn_models/
 training_data/
+=======
+plots/
+>>>>>>> ad393dcd83ff652bfae9619954bfc65a20879d37
