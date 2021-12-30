@@ -7,5 +7,3 @@ data/
 plots/
 dqn_models/
 training_data/
-train_new.ipynb
-train_old.ipynb
