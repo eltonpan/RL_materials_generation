@@ -5,6 +5,11 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import random
 import pickle
 import time
+from matminer.featurizers.base import MultipleFeaturizer
+import matminer.featurizers.composition as cf
+from pymatgen.core.composition import Composition
+from sklearn.ensemble import RandomForestRegressor
+import joblib
 
 # Load scaler
 compressed_inputs = np.load("data/ss_sg_inputs_impute_precs_onehot_targets_all_targets_1.npz") 
@@ -17,10 +22,23 @@ scaler = StandardScaler()
 x_temp = np.array(x_temp)
 x_temp = np.reshape(scaler.fit_transform(x_temp), (-1, 8, 1))
 
-# Load prediction model
+# Load CVAE prediction model
 temp_gen = TempTimeGenerator()
 temp_gen.build_nn_model()
 temp_gen.load_models(model_variant="epochs_40", load_path="cvae_models/")
+
+# Load RF prediction model
+rf_regr = RandomForestRegressor()
+rf_regr = joblib.load("rf_models/rf_sinter_predict_no_imputation_no_precursors.joblib")
+rf_regr
+
+# Featurization for RF model
+feature_calculators = MultipleFeaturizer([
+    cf.element.Stoichiometry(),
+    cf.composite.ElementProperty.from_preset("magpie"),
+    cf.orbital.ValenceOrbital(props=["avg"]),
+    cf.ion.IonProperty(fast=True)
+])
 
 class MaterialEnvironment():
     """
@@ -65,18 +83,31 @@ class MaterialEnvironment():
 
     def reward(self):
         if self.counter == self.max_steps:
-            # Predict sintering temperature of material using CVAE
-            op_arr = temp_gen.generate_samples(
-            onehot_target(self.state).reshape(1, 40, 115),
-            n_samples=100)
-            sinter_T = [] # List of generated sintering T
-            for conds in op_arr:
-                conds = np.reshape(conds, (8,))
-                temp_time = scaler.inverse_transform(conds.reshape(1, -1)).flatten()
-                if temp_time[1] > 0 and temp_time[5] > 0:
-                    sinter_T.append(round(temp_time[1], 1))
-            sinter_T_pred = np.mean(sinter_T)
+            
+            # # OPTION 1: Predict sintering temperature of material using CVAE
+            # op_arr = temp_gen.generate_samples(
+            # onehot_target(self.state).reshape(1, 40, 115),
+            # n_samples=100)
+            # sinter_T = [] # List of generated sintering T
+            # for conds in op_arr:
+            #     conds = np.reshape(conds, (8,))
+            #     temp_time = scaler.inverse_transform(conds.reshape(1, -1)).flatten()
+            #     if temp_time[1] > 0 and temp_time[5] > 0:
+            #         sinter_T.append(round(temp_time[1], 1))
+            # sinter_T_pred = np.mean(sinter_T)
+
+            # OPTION 2: Predict sintering temperature of material using RF
+            try:
+                chemical = Composition(self.state)
+                features = feature_calculators.featurize(chemical)
+                features = np.array(features).reshape(1, -1)
+                # print(features)
+                sinter_T_pred = rf_regr.predict(features)[0]
+            except IndexError: # Ad-hoc fix for featurization problem (chemical = Composition(self.state))
+                sinter_T_pred = 1000.0 
+
             reward = -sinter_T_pred
+            # print(type(reward))
         else:
             reward = 0
 
@@ -247,7 +278,7 @@ if __name__ == "__main__":
 
 # Save Q_data
 if __name__ == "__main__":
-    with open('./data/Q_data_random.pkl', 'wb') as f:
+    with open('./data/Q_data_random_RF.pkl', 'wb') as f:
         pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)
 
 

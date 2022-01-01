@@ -2,6 +2,8 @@ id_rsa
 id_rsa_old
 data/Q_data_random.pkl
 data/Q_data_trained.pkl
+data/Q_data_random_RF.pkl
+data/Q_data_trained_RF.pkl
 __pycache__
 data/
 plots/
