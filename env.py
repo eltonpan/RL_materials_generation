@@ -273,17 +273,8 @@ if __name__ == "__main__":
         Q_data = extract_data_from_ep(episode)
         Q_data_random.append(Q_data)
     end = time.time()
-    print('time taken:', end - start)
-
-
-# Save Q_data
-if __name__ == "__main__":
+    print('time taken:', end - start)\
+    
+    # Save Q_data
     with open('./data/Q_data_random_RF.pkl', 'wb') as f:
         pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)
-
-
-
-
-
-    
-        

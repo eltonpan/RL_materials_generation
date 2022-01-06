@@ -4,9 +4,12 @@ data/Q_data_random.pkl
 data/Q_data_trained.pkl
 data/Q_data_random_RF.pkl
 data/Q_data_trained_RF.pkl
+/data/Q_data_random_RF_constrained.pkl
+/data/Q_data_trained_RF_constrained.pkl
 __pycache__
 data/
 plots/
 dqn_models/
+dcn_models/
 training_data/
 plots/
