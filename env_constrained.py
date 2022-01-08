@@ -10,7 +10,7 @@ import matminer.featurizers.composition as cf
 from pymatgen.core.composition import Composition
 from sklearn.ensemble import RandomForestRegressor
 import joblib
-from constraints.electronegativity_check_fast import check_electronegativity
+from constraints.checkers import check_electronegativity
 
 # Load scaler
 compressed_inputs = np.load("data/ss_sg_inputs_impute_precs_onehot_targets_all_targets_1.npz") 
@@ -288,7 +288,7 @@ def extract_data_from_ep(episode, disc_factor =  0.9):
 if __name__ == "__main__":
     start = time.time()
     # Generate random episodes
-    num_eps = 10000
+    num_eps = 20000
     episodes = []
     for j in range(num_eps):
         episode = generate_random_ep()
@@ -303,5 +303,5 @@ if __name__ == "__main__":
     print('time taken:', end - start)\
     
     # Save Q_data
-    with open('./data/Q_data_random_RF_constrained.pkl', 'wb') as f:
+    with open('./data/Q_data_random_RF_constrained_20000ep.pkl', 'wb') as f:
         pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)
