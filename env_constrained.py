@@ -1,6 +1,6 @@
 import numpy as np
 from one_hot import feature_calculators, featurize_target, onehot_target, element_set, comp_set, one_hot_to_element, element_to_one_hot, one_hot_to_comp, comp_to_one_hot, step_to_one_hot, one_hot_to_step
-from CVAE import TempTimeGenerator
+# from CVAE import TempTimeGenerator
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import random
 import pickle
@@ -23,10 +23,10 @@ scaler = StandardScaler()
 x_temp = np.array(x_temp)
 x_temp = np.reshape(scaler.fit_transform(x_temp), (-1, 8, 1))
 
-# Load CVAE prediction model
-temp_gen = TempTimeGenerator()
-temp_gen.build_nn_model()
-temp_gen.load_models(model_variant="epochs_40", load_path="cvae_models/")
+# # Load CVAE prediction model
+# temp_gen = TempTimeGenerator()
+# temp_gen.build_nn_model()
+# temp_gen.load_models(model_variant="epochs_40", load_path="cvae_models/")
 
 # Load RF prediction model
 rf_regr = RandomForestRegressor()
