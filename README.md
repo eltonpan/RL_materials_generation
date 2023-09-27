@@ -49,7 +49,7 @@ Run the following terminal commands
   jupyter notebook <notebook_name>.ipynb
 ```
 
-make sure the `zeosyn` is the environment under dropdown menu `Kernel` > `Change kernel`
+make sure the `dqn` is the environment under dropdown menu `Kernel` > `Change kernel`
 
 # Cite
 If you use this dataset or code, please cite this paper:
