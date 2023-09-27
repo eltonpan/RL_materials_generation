@@ -1,6 +1,6 @@
 # Code for Paper: *Deep Reinforcement Learning for Inverse Inorganic Materials Design*
 
-Paper url: [Deep Reinforcement Learning for Inverse Inorganic Materials Design](https://arxiv.org/abs/2210.11931)
+Paper url: [Deep Reinforcement Learning for Inverse Inorganic Materials Design, NeurIPS AI4Mat Workshop (2022)](https://arxiv.org/abs/2210.11931)
 
 Elton Pan, Christopher Karpovich, Elsa Olivetti
 
