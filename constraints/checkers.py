@@ -5,6 +5,7 @@ import numpy as np
 from pymatgen.core import Composition
 import pymatgen as mg
 from smact.screening import pauling_test
+from tqdm import tqdm
 
 def check_neutrality(formula):
     comp = Composition(formula)
@@ -28,6 +29,7 @@ def check_neutrality(formula):
     elif element_num == 8:
         return check_neutrality_8(formula)
     else:
+        print(formula)
         raise Exception('Not implemented: contact 897902311@qq.com')
         return False
 
@@ -315,8 +317,9 @@ def check_electronegativity(formula):
     elif element_num == 8:
         return check_electronegativity_8(formula)
     else:
+        print(formula)
         raise Exception('Not implemented: contact 897902311@qq.com')
-        return False
+        # return False
 
 def check_electronegativity_2(formula):
     pauling_count = 0
@@ -338,8 +341,8 @@ def check_electronegativity_2(formula):
                     oxidation_states = [ox_a, ox_b]
                     pauling_electro = [paul_a, paul_b]
                     if None in pauling_electro:
-                        print("No pauling electronegativity data")
-                        return False
+                        raise Exception("No pauling electronegativity data")
+#                         return False
                     # Checks if the electronegativity makes sense and if the combination is charge neutral #
                     electroneg_makes_sense = pauling_test(oxidation_states, pauling_electro, elements)
                     cn_e, cn_r = neutral_ratios([ox_a, ox_b], stoichs = stoichs, threshold = int(max_num))
@@ -381,8 +384,8 @@ def check_electronegativity_3(formula):
                             oxidation_states = [ox_a, ox_b, ox_c]
                             pauling_electro = [paul_a, paul_b, paul_c]
                             if None in pauling_electro:
-                                print("No pauling electronegativity data")
-                                return False
+                                raise Exception("No pauling electronegativity data")
+                                # return False
                             # print(pauling_electro)
                             # Checks if the electronegativity makes sense and if the combination is charge neutral #
                             electroneg_makes_sense = pauling_test(oxidation_states, pauling_electro, elements)
@@ -428,8 +431,8 @@ def check_electronegativity_4(formula):
                                     oxidation_states = [ox_a, ox_b, ox_c, ox_d]
                                     pauling_electro = [paul_a, paul_b, paul_c, paul_d]
                                     if None in pauling_electro:
-                                        print("No pauling electronegativity data")
-                                        return False
+                                        raise Exception("No pauling electronegativity data")
+                                        # return False
                                     # Checks if the electronegativity makes sense and if the combination is charge neutral #
                                     electroneg_makes_sense = pauling_test(oxidation_states, pauling_electro, elements)
                                     cn_e, cn_r = neutral_ratios([ox_a, ox_b, ox_c, ox_d], stoichs = stoichs, threshold = int(max_num))
@@ -477,8 +480,8 @@ def check_electronegativity_5(formula):
                                             oxidation_states = [ox_a, ox_b, ox_c, ox_d, ox_e]
                                             pauling_electro = [paul_a, paul_b, paul_c, paul_d, paul_e]
                                             if None in pauling_electro:
-                                                print("No pauling electronegativity data")
-                                                return False
+                                                raise Exception("No pauling electronegativity data")
+                                                # return False
                                             # Checks if the electronegativity makes sense and if the combination is charge neutral #
                                             electroneg_makes_sense = pauling_test(oxidation_states, pauling_electro, elements)
                                             cn_e, cn_r = neutral_ratios([ox_a, ox_b, ox_c, ox_d, ox_e], stoichs = stoichs, threshold = int(max_num))
@@ -529,8 +532,8 @@ def check_electronegativity_6(formula):
                                                     oxidation_states = [ox_a, ox_b, ox_c, ox_d, ox_e, ox_f]
                                                     pauling_electro = [paul_a, paul_b, paul_c, paul_d, paul_e, paul_f]
                                                     if None in pauling_electro:
-                                                        print("No pauling electronegativity data")
-                                                        return False
+                                                        raise Exception("No pauling electronegativity data")
+                                                        # return False
                                                     # Checks if the electronegativity makes sense and if the combination is charge neutral #
                                                     electroneg_makes_sense = pauling_test(oxidation_states, pauling_electro, elements)
                                                     cn_e, cn_r = neutral_ratios([ox_a, ox_b, ox_c, ox_d, ox_e, ox_f], stoichs = stoichs, threshold = int(max_num))
@@ -586,8 +589,8 @@ def check_electronegativity_7(formula):
                                                             oxidation_states = [ox_a, ox_b, ox_c, ox_d, ox_e, ox_f, ox_g]
                                                             pauling_electro = [paul_a, paul_b, paul_c, paul_d, paul_e, paul_f, paul_g]
                                                             if None in pauling_electro:
-                                                                print("No pauling electronegativity data")
-                                                                return False
+                                                                raise Exception("No pauling electronegativity data")
+                                                                # return False
                                                             # Checks if the electronegativity makes sense and if the combination is charge neutral #
                                                             electroneg_makes_sense = pauling_test(oxidation_states, pauling_electro, elements)
                                                             cn_e, cn_r = neutral_ratios([ox_a, ox_b, ox_c, ox_d, ox_e, ox_f, ox_g], stoichs = stoichs, threshold = int(max_num))
@@ -647,8 +650,8 @@ def check_electronegativity_8(formula):
                                                                     oxidation_states = [ox_a, ox_b, ox_c, ox_d, ox_e, ox_f, ox_g, ox_h]
                                                                     pauling_electro = [paul_a, paul_b, paul_c, paul_d, paul_e, paul_f, paul_g, paul_h]
                                                                     if None in pauling_electro:
-                                                                        print("No pauling electronegativity data")
-                                                                        return False
+                                                                        raise Exception("No pauling electronegativity data")
+                                                                        # return False
                                                                     # Checks if the electronegativity makes sense and if the combination is charge neutral #
                                                                     electroneg_makes_sense = pauling_test(oxidation_states, pauling_electro, elements)
                                                                     cn_e, cn_r = neutral_ratios([ox_a, ox_b, ox_c, ox_d, ox_e, ox_f, ox_g, ox_h], stoichs = stoichs, threshold = int(max_num))
@@ -679,7 +682,7 @@ def check_neutrality_multiple(compounds):
     '''
     good = []
     bad  = [] 
-    for compound in compounds:
+    for compound in tqdm(compounds):
         try:
             if check_neutrality(Composition(compound)): # If neutral
                 good.append(compound)
@@ -700,7 +703,7 @@ def check_electronegativity_multiple(compounds):
     '''
     good = []
     bad  = [] 
-    for compound in compounds:
+    for compound in tqdm(compounds):
         try:
             if check_electronegativity(compound): # If neutral
                 good.append(compound)

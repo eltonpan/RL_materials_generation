@@ -1,3 +1,4 @@
+from asyncio import tasks
 import numpy as np
 from one_hot import feature_calculators, featurize_target, onehot_target, element_set, comp_set, one_hot_to_element, element_to_one_hot, one_hot_to_comp, comp_to_one_hot, step_to_one_hot, one_hot_to_step
 # from CVAE import TempTimeGenerator
@@ -11,6 +12,8 @@ from pymatgen.core.composition import Composition
 from sklearn.ensemble import RandomForestRegressor
 import joblib
 from constraints.checkers import check_electronegativity
+from roost_models.roost_model import predict_formation_energy, predict_bulk_mod, predict_shear_mod, predict_band_gap
+from configs import configs
 
 # Load scaler
 compressed_inputs = np.load("data/ss_sg_inputs_impute_precs_onehot_targets_all_targets_1.npz") 
@@ -29,9 +32,11 @@ x_temp = np.reshape(scaler.fit_transform(x_temp), (-1, 8, 1))
 # temp_gen.load_models(model_variant="epochs_40", load_path="cvae_models/")
 
 # Load RF prediction model
-rf_regr = RandomForestRegressor()
-rf_regr = joblib.load("rf_models/rf_sinter_predict_no_imputation_no_precursors.joblib")
-rf_regr
+rf_regr_sinter  = RandomForestRegressor()
+rf_regr_calcine = RandomForestRegressor()
+# rf_regr_sinter = joblib.load("rf_models/rf_sinter_predict_no_imputation_no_precursors.joblib") # original RF model
+rf_regr_sinter = joblib.load("rf_models/optimal_sinter_RF.joblib") # final RF sintering model
+rf_regr_calcine = joblib.load("rf_models/optimal_calcine_RF.joblib") # final RF sintering model
 
 # Featurization for RF model
 feature_calculators = MultipleFeaturizer([
@@ -41,13 +46,57 @@ feature_calculators = MultipleFeaturizer([
     cf.ion.IonProperty(fast=True)
 ])
 
+def predict_sinter(chemical):
+    '''
+    Predicts the sintering temperature of a material
+
+    Args:
+    chemical: Str.
+    
+    Returns
+    sinter_T: float. Predicted sintering temperature
+    '''
+    try:
+        chemical = Composition(chemical)
+        features = feature_calculators.featurize(chemical)
+        features = np.array(features).reshape(1, -1)
+        # print(features)
+        sinter_T = rf_regr_sinter.predict(features)[0]
+    except IndexError: # Ad-hoc fix for featurization problem (chemical = Composition(self.state))
+        sinter_T = 1000.0
+
+    return sinter_T
+
+def predict_calcine(chemical):
+    '''
+    Predicts the calcination temperature of a material
+
+    Args:
+    chemical: Str.
+    
+    Returns
+    calcine_T: float. Predicted sintering temperature
+    '''
+    try:
+        chemical = Composition(chemical)
+        features = feature_calculators.featurize(chemical)
+        features = np.array(features).reshape(1, -1)
+        # print(features)
+        calcine_T = rf_regr_calcine.predict(features)[0]
+    except IndexError: # Ad-hoc fix for featurization problem (chemical = Composition(self.state))
+        calcine_T = 1000.0
+
+    return calcine_T
+
 class ConstrainedMaterialEnvironment():
     """
     Defines the Markov decision process of generating an inorganic material.
+
     """
     def __init__(self, 
                 element_set,
                 comp_set,
+                tasks,
                 init_mat = '',
                 max_steps = 5,
                 ):
@@ -56,6 +105,9 @@ class ConstrainedMaterialEnvironment():
         
         Args:
         element_set: List. Set of elements (strings) for constructing an inorganic material
+        comp_set: List. Set of compositions (strings) for constructing an inorganic material
+        tasks: List. Rewards to optimize with respect to 
+            e.g. 'sinter', 'form_e', 'bulk_mod', 'shear_mod', 'band_gap'
         init_mat: String. Initial material
         max_steps: Int. Max number of steps per episode
         '''
@@ -65,6 +117,7 @@ class ConstrainedMaterialEnvironment():
         self.max_steps   = max_steps
         self.state = ''
         self.counter = 0
+        self.tasks = tasks
 
         self.path = []
 
@@ -85,30 +138,53 @@ class ConstrainedMaterialEnvironment():
     def reward(self):
         if self.counter == self.max_steps:
             
-            # # OPTION 1: Predict sintering temperature of material using CVAE
-            # op_arr = temp_gen.generate_samples(
-            # onehot_target(self.state).reshape(1, 40, 115),
-            # n_samples=100)
-            # sinter_T = [] # List of generated sintering T
-            # for conds in op_arr:
-            #     conds = np.reshape(conds, (8,))
-            #     temp_time = scaler.inverse_transform(conds.reshape(1, -1)).flatten()
-            #     if temp_time[1] > 0 and temp_time[5] > 0:
-            #         sinter_T.append(round(temp_time[1], 1))
-            # sinter_T_pred = np.mean(sinter_T)
+            reward = 0 # Initialize reward to 0 and accumulate reward according to tasks
 
-            # OPTION 2: Predict sintering temperature of material using RF
-            try:
-                chemical = Composition(self.state)
-                features = feature_calculators.featurize(chemical)
-                features = np.array(features).reshape(1, -1)
-                # print(features)
-                sinter_T_pred = rf_regr.predict(features)[0]
-            except IndexError: # Ad-hoc fix for featurization problem (chemical = Composition(self.state))
-                sinter_T_pred = 1000.0 
+            # 1A) Sintering temperature of material using RF
+            if 'sinter' in self.tasks:
+                sinter_T = predict_sinter(self.state)
+            else:
+                sinter_T = 0
+            reward -= sinter_T
 
-            reward = -sinter_T_pred
-            # print(type(reward))
+            # 1B) Calcination temperature of material using RF
+            if 'calcine' in self.tasks:
+                calcine_T = predict_calcine(self.state)
+            else:
+                calcine_T = 0
+            reward -= calcine_T
+
+            # 2) Formation energy of material using ROOST
+            if 'form_e' in self.tasks: # Positive formation energy taken as good
+                form_e = predict_formation_energy(self.state)
+            else:
+                form_e =  0
+            reward -= form_e
+
+            # 3) Bulk modulus of material using ROOST
+            if 'bulk_mod' in self.tasks:
+                bulk_mod = predict_bulk_mod(self.state)
+            else:
+                bulk_mod = 0
+            reward += 500*bulk_mod
+
+            # 4) Shear modulus of material using ROOST
+            if 'shear_mod' in self.tasks:
+                shear_mod = predict_shear_mod(self.state)
+            else:
+                shear_mod = 0
+            reward += shear_mod
+
+            # 5) Band gap of material using ROOST
+            if 'band_gap' in self.tasks:
+                band_gap = predict_band_gap(self.state)
+                target_band_gap = 1.0
+                # reward_bg = -np.e**(10*max(0, np.abs(band_gap - target_band_gap)))
+                reward_bg = np.e**(10*band_gap)
+            else:
+                reward_bg = 0
+            reward += reward_bg
+
         else:
             reward = 0
 
@@ -176,9 +252,11 @@ class ConstrainedMaterialEnvironment():
             s_a_r_c = ([featurize_target(old_state), step_to_one_hot([self.counter])[0]], action, reward, en) # One-hot states for storing into path, actions are already one-hot
 
         self.path.append(s_a_r_c) # append (state, action, reward, constraint) - [material, step], [element, composition], reward
-    
+
+tasks = configs['tasks']
 env = ConstrainedMaterialEnvironment(element_set = element_set,
-                          comp_set =  comp_set,)
+                          comp_set =  comp_set,
+                          tasks = tasks)
 
 # print('step:',env.num_steps_taken)
 # print('state:',env.state)
@@ -213,20 +291,24 @@ env = ConstrainedMaterialEnvironment(element_set = element_set,
 # print('reward:',env.reward())
 # print('')
 
-def generate_random_act():
+def generate_random_act(oxide = False):
     '''
     Generates random action.
     Returns: List. [tuple(element), tuple(composition)]
     '''
     # Sample random action
     element = random.sample(element_set, 1)
-    element = tuple(element_to_one_hot(element)[0])
-    comp = random.sample(comp_set, 1)
+    if oxide:
+        element = tuple(element_to_one_hot('O')[0])
+        comp = random.sample(comp_set[1:], 1) # consider only non-zero compositions
+    else:
+        element = tuple(element_to_one_hot(element)[0])
+        comp = random.sample(comp_set, 1)
     comp = tuple(comp_to_one_hot(comp)[0])
     action = [element, comp]
     return action
 
-def generate_random_ep(max_steps = 5):
+def generate_random_ep(max_steps = 5, oxide = False):
     '''
     Generates an episode with random policy
     
@@ -240,8 +322,15 @@ def generate_random_ep(max_steps = 5):
     env.initialize()
 
     for i in range(max_steps):
-        # Sample random action
-        action = generate_random_act()
+        
+        # if i == max_steps-1: # if first step, choose oxygen only
+        #     element, comp = action
+        #     element = tuple(element_to_one_hot('O')[0])
+        #     action  = [element, comp]
+        if i == max_steps-1: # if last step, choose oxygen only
+            action = generate_random_act(oxide = oxide)
+        else:
+            action = generate_random_act(oxide = False)
 
         # Take step with action
         env.step(action)
@@ -252,8 +341,18 @@ def generate_random_ep(max_steps = 5):
         # print(env.num_steps_taken)
         print('')
     return env.path
-# ep = generate_random_ep()
+    # return env.state
+# ep = generate_random_ep(oxide = True)
 
+# # Generating random oxides - make sure to change env.path to env.state in generate_random_ep()
+# if __name__ == "__main__":
+#     random_oxides = []
+#     for i in range(1000):
+#         compound = generate_random_ep(oxide = True)
+#         random_oxides.append(compound)               
+#     with open('./training_data/random_oxides-3.pkl', 'wb') as f:
+#         pickle.dump(random_oxides, f, pickle.HIGHEST_PROTOCOL)
+#     print(random_oxides)
 
 def extract_data_from_ep(episode, disc_factor =  0.9):
     """
@@ -284,24 +383,27 @@ def extract_data_from_ep(episode, disc_factor =  0.9):
     return Q_data
 # print(extract_data_from_ep(episode = ep))
 
-# ========= FOR RANDOM POLICY ===========
-if __name__ == "__main__":
-    start = time.time()
-    # Generate random episodes
-    num_eps = 20000
-    episodes = []
-    for j in range(num_eps):
-        episode = generate_random_ep()
-        episodes.append(episode)
 
-    Q_data_random = []
-    # Extract Q_data from episodes
-    for episode in episodes:
-        Q_data = extract_data_from_ep(episode)
-        Q_data_random.append(Q_data)
-    end = time.time()
-    print('time taken:', end - start)\
+
+
+# # ========= FOR RANDOM POLICY ===========
+# if __name__ == "__main__":
+#     start = time.time()
+#     # Generate random episodes
+#     num_eps = 10000
+#     episodes = []
+#     for j in range(num_eps):
+#         episode = generate_random_ep(oxide = True)
+#         episodes.append(episode)
+
+#     Q_data_random = []
+#     # Extract Q_data from episodes
+#     for episode in episodes:
+#         Q_data = extract_data_from_ep(episode)
+#         Q_data_random.append(Q_data)
+#     end = time.time()
+#     print('time taken:', end - start)\
     
-    # Save Q_data
-    with open('./data/Q_data_random_RF_constrained_20000ep.pkl', 'wb') as f:
-        pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)
+#     # Save Q_data
+#     with open('./data/oxides_sinter/Q_data_random.pkl', 'wb') as f:
+#         pickle.dump(Q_data_random, f, pickle.HIGHEST_PROTOCOL)

@@ -52,7 +52,7 @@ class CompositionData(Dataset):
         # self.df = pd.read_csv(data_path, keep_default_na=False, na_values=[])
         
         # Material
-        data = {'material_id':[0], 'composition': [material], 'formation_energy_per_atom': [0.]}
+        data = {'material_id':[0], 'composition': [material], list(task_dict.keys())[0]: [0.]}
         self.df = pd.DataFrame(data)
         # print(self.df)
         # print('fea_path:', fea_path)
@@ -74,7 +74,7 @@ class CompositionData(Dataset):
     def __len__(self):
         return len(self.df)
 
-    @functools.lru_cache(maxsize=None)  # Cache data for faster training
+    @functools.lru_cache(maxsize=10)  # Cache data for faster training
     def __getitem__(self, idx):
         """[summary]
 

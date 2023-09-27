@@ -10,8 +10,13 @@ import matminer.featurizers.composition as cf
 from pymatgen.core.composition import Composition
 
 max_num_steps = 5
+
+# original
 element_set = ['Te', 'Sc', 'C', 'Hg', 'Ru', 'Na', 'Co', 'Mo', 'I', 'Tm', 'F', 'Al', 'Pd', 'Fe', 'Th', 'Cs', 'Gd', 'W', 'Ta', 'Dy', 'Pb', 'Rb', 'Ba', 'Ce', 'Ga', 'Tl', 'Mn', 'B', 'Ni', 'Tb', 'Hf', 'Ge', 'V', 'Ho', 'In', 'Cd', 'Yb', 'Pt', 'Nd', 'Mg', 'Zr', 'Re', 'P', 'Sb', 'O', 'N', 'Zn', 'Au', 'Lu', 'Be', 'Cr', 'Ag', 'Pu', 'Si', 'Cu', 'Os', 'Li', 'Am', 'Pr', 'S', 'As', 'Ti', 'Nb', 'Eu', 'H', 'Br', 'La', 'Er', 'Sm', 'Cl', 'Sn', 'K', 'Sr', 'Rh', 'Se', 'U', 'Y', 'Bi', 'Ca', 'Ir']
-# element_set = ['Ba', 'Sr', 'Al', 'Sb', 'Ce', 'Cr', 'Pb', 'Co', 'Fe', 'Li', 'Ni', 'Zn', 'O']
+
+# for oxides - intersection between oqmd-formation-energy and rf_sintering_T datasets
+element_set = ['O', 'Te', 'N', 'B', 'Tm', 'Ga', 'Hf', 'Ca', 'Al', 'P', 'Li', 'S', 'Cr', 'Zr', 'Ta', 'Sn', 'Au', 'Hg', 'Cd', 'Mn', 'Cs', 'Pd', 'Th', 'K', 'Ti', 'Ag', 'Zn', 'W', 'Ce', 'Nd', 'Sr', 'Tl', 'Cl', 'Mg', 'Pr', 'Rb', 'Pb', 'Ru', 'Ho', 'Nb', 'Mo', 'C', 'V', 'Er', 'Pt', 'Fe', 'Ir', 'Sb', 'Y', 'Na', 'Co', 'Be', 'In', 'La', 'U', 'Pu', 'As', 'Sm', 'Br', 'Ni', 'Eu', 'Ba', 'F', 'Rh', 'Yb', 'Gd', 'Os', 'Lu', 'Ge', 'Cu', 'H', 'Sc', 'Si', 'Re', 'Dy', 'Bi', 'Tb', 'Se']
+
 comp_set  = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 step_set  = [x for x in range(1,max_num_steps+1)]
 

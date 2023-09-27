@@ -13,6 +13,7 @@ import numpy as np
 import torch
 from torch import nn
 from one_hot import _get_target_char_sequence, onehot_target, featurize_target, feature_calculators # for testing purposes, to be deleted
+from one_hot import element_set
 
 # # Keras DQN model
 # class DQN_keras(object):
@@ -115,7 +116,7 @@ from one_hot import _get_target_char_sequence, onehot_target, featurize_target, 
 class DQN_pytorch(nn.Module):
   def __init__(self, max_target_length=40,
                      max_step_size = 5,
-                     num_elem = 80,
+                     num_elem = len(element_set),
                     # num_elem = 13,
                      num_comp = 10,
                      prec_conv_window = 3,
@@ -221,7 +222,7 @@ class DQN_pytorch(nn.Module):
 class DCN_pytorch(nn.Module):
   def __init__(self, max_target_length=40,
                      max_step_size = 5,
-                     num_elem = 80,
+                     num_elem = len(element_set),
                     # num_elem = 13,
                      num_comp = 10,
                      prec_conv_window = 3,

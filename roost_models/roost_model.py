@@ -18,6 +18,7 @@ def results_multitask(  # noqa: C901
     robust,
     task_dict,
     device,
+    model_file, # name of model eg. 'oqmd-form-enthalpy.tar'
     eval_type="checkpoint",
     print_results=True,
     save_results=True,
@@ -55,7 +56,7 @@ def results_multitask(  # noqa: C901
     for j in range(ensemble_folds):
 
         if ensemble_folds == 1:
-            resume = f"models/oqmd-form-enthalpy.tar"
+            resume = f"models/" + model_file
             # print("Evaluating Model")
         # else:
         #     resume = f"models/{model_name}/{eval_type}-r{j}.pth.tar"
@@ -100,7 +101,6 @@ def results_multitask(  # noqa: C901
                     results_dict[name]["ale"][j, :] = ale_std.view(-1).numpy()
                 else:
                     pred = normalizer_dict[name].denorm(pred.data.cpu())
-
                 results_dict[name]["pred"][j, :] = pred.view(-1).numpy()
 
             elif task == "classification":
@@ -136,11 +136,15 @@ def results_multitask(  # noqa: C901
     #             print_metrics_regression(**results_dict[name])
     #         elif task == "classification":
     #             print_metrics_classification(**results_dict[name])
-
-    formation_energy = results_dict['formation_energy_per_atom']['pred'][0][0]
-    return formation_energy
-
-task_dict={'formation_energy_per_atom': 'regression'}
+    if 'enthalpy' in model_file:
+        result = results_dict['formation_energy_per_atom']['pred'][0][0]
+    elif 'bulk' in model_file:
+        result = results_dict['log_K_VRH']['pred'][0][0]
+    elif 'shear' in model_file:
+        result = results_dict['log_G_VRH']['pred'][0][0]
+    elif 'band' in model_file:
+        result = results_dict['band_gap']['pred'][0][0]
+    return result
 
 
 def predict_formation_energy(material):
@@ -153,12 +157,12 @@ def predict_formation_energy(material):
     Returns:
     form_e_pred: float64. Predicted formation energy per atom
     '''
-
+    task_dict={'formation_energy_per_atom': 'regression'}
     test_set = CompositionData(
                 material = material,
                 # material = 'NaCl',
                 # data_path="data/datasets/roost/oqmd-form-enthalpy.csv",
-                fea_path="data/el-embeddings/matscholar-embedding.json",
+                fea_path="/home/jupyter/Elton/RL/DQN/roost_models/data/el-embeddings/matscholar-embedding.json",
                 task_dict=task_dict
             )
 
@@ -173,8 +177,113 @@ def predict_formation_energy(material):
                     task_dict=task_dict,
                     device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
                     eval_type="checkpoint",
+                    model_file = 'oqmd-form-enthalpy.tar'
                 )
+    del test_set
     return form_e_pred
+
+def predict_bulk_mod(material):
+    '''
+    Given a material composition, predict formation energy using ROOST
+
+    Args:
+    material: Str.
+
+    Returns:
+    bulk_mod_pred: float64. Predicted bulk modulus
+    '''
+    task_dict={'log_K_VRH': 'regression'}
+    test_set = CompositionData(
+                material = material,
+                # material = 'NaCl',
+                # data_path="data/datasets/roost/oqmd-form-enthalpy.csv",
+                fea_path="data/el-embeddings/matscholar-embedding.json",
+                task_dict=task_dict
+            )
+
+    bulk_mod_pred = results_multitask(
+                    model_class=Roost,
+                    model_name=' ',
+                    run_id=0,
+                    ensemble_folds=1,
+                    test_set=test_set, # <torch.utils.data.dataset.Subset object at 0x7f549e0a2710>
+                    data_params={'batch_size': 2048, 'num_workers': 0, 'pin_memory': False, 'shuffle': False, 'collate_fn': collate_batch},
+                    robust=False,
+                    task_dict=task_dict,
+                    device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
+                    eval_type="checkpoint",
+                    model_file = 'mp-bulk-mod.tar'
+                )
+    del test_set
+    return bulk_mod_pred
+
+def predict_shear_mod(material):
+    '''
+    Given a material composition, predict formation energy using ROOST
+
+    Args:
+    material: Str.
+
+    Returns:
+    shear_mod_pred: float64. Predicted shear modulus
+    '''
+    task_dict={'log_G_VRH': 'regression'}
+    test_set = CompositionData(
+                material = material,
+                # material = 'NaCl',
+                # data_path="data/datasets/roost/oqmd-form-enthalpy.csv",
+                fea_path="data/el-embeddings/matscholar-embedding.json",
+                task_dict=task_dict
+            )
+
+    shear_mod_pred = results_multitask(
+                    model_class=Roost,
+                    model_name=' ',
+                    run_id=0,
+                    ensemble_folds=1,
+                    test_set=test_set, # <torch.utils.data.dataset.Subset object at 0x7f549e0a2710>
+                    data_params={'batch_size': 2048, 'num_workers': 0, 'pin_memory': False, 'shuffle': False, 'collate_fn': collate_batch},
+                    robust=False,
+                    task_dict=task_dict,
+                    device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
+                    eval_type="checkpoint",
+                    model_file = 'mp-shear-mod.tar'
+                )
+    return shear_mod_pred
+
+def predict_band_gap(material):
+    '''
+    Given a material composition, predict band gap using ROOST
+
+    Args:
+    material: Str.
+
+    Returns:
+    band_gap_pred: float64. Predicted band gap
+    '''
+    task_dict={'band_gap': 'regression'}
+    test_set = CompositionData(
+                material = material,
+                # material = 'NaCl',
+                # data_path="data/datasets/roost/oqmd-form-enthalpy.csv",
+                fea_path="data/el-embeddings/matscholar-embedding.json",
+                task_dict=task_dict
+            )
+
+    band_gap_pred = results_multitask(
+                    model_class=Roost,
+                    model_name=' ',
+                    run_id=0,
+                    ensemble_folds=1,
+                    test_set=test_set, # <torch.utils.data.dataset.Subset object at 0x7f549e0a2710>
+                    data_params={'batch_size': 2048, 'num_workers': 0, 'pin_memory': False, 'shuffle': False, 'collate_fn': collate_batch},
+                    robust=False,
+                    task_dict=task_dict,
+                    device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
+                    eval_type="checkpoint",
+                    model_file = 'mp-band-gap.tar'
+                )
+    return band_gap_pred
 
 #
 if __name__ == "__main__":

@@ -14,3 +14,8 @@ dqn_models/
 dcn_models/
 training_data/
 plots/
+rf_models/optimal_sinter_RF.joblib
+rf_models/optimal_calcine_RF.joblib
+*.out
+envs
+.ipynb_checkpoints/
